@@ -6,6 +6,7 @@ class PreProcessText:
 
 
 	"""
+	Write code to:
 	1. removes hashtags, or better yet could remove the # from a hashtagWord to leave
 	the words in place. test both to check which affects nlu
 	2. remove @something[corresponds to a person]
