@@ -6,8 +6,14 @@ import numpy as np
 import scipy as sp 
 from scipy.special import gammaln
 
+def sample_index(p):
+	"""
+	sample from the multinomial distribution and return the sample index
+	"""
+	return np.random.multinomial(1,p).argmax()
+
 class lda_sampler:
-	def(self, nTopics, alpha=0.1, beta=0.1):
+	def __init__(self, nTopics, alpha=0.1, beta=0.1):
 		"""
 		nTopics -> desired number of topics
 		alpha -> scalar
@@ -24,12 +30,12 @@ class lda_sampler:
 		sequence of word indices. 
 		"""
 		for i in vec.nonzero()[0]:
-			for i in xrange(int(vec[i])):
-				yield i
+			for j in xrange(int(vec[i])):
+				yield j
 
 
 	def initialSampling(self, M):
-		n_docs, n_vocabSize = M.shape()
+		n_docs, n_vocabSize = M.shape
 		#number of times a document m and topic z co-occur
 		self.ntdz = np.zeros((n_docs, self.nTopics))
 		#number of times topic z and word w co-occur
@@ -43,7 +49,7 @@ class lda_sampler:
 		for m in xrange(n_docs):
 			# i is a number of times document m and topic z occur
 			# w is a number of 0 - vocab_size - 1
-			for i, w in enumerate(self.get_indices(matrix[m, :]))
+			for i, w in enumerate(self.get_indices(M[m, :])):
 				#choose an arbitrary topic as first topic for word i
 				z = np.random.randint(self.nTopics)
 				self.ntdz[m, z] += 1
@@ -65,6 +71,15 @@ class lda_sampler:
 		p_z /= np.sum(p_z)
 		return p_z
 
+	def phi(self):
+		"""
+		compute phi = p(w | z)
+		"""
+		V = self.ntdz.shape[1]
+		num = self.ntzw + self.beta
+		num /= np.sum(num, axis=1)[:, np.newaxis]
+		return num
+
 	def start(self, matrix, iter=30):
 		"""
 		start the gibbs sampler
@@ -74,11 +89,20 @@ class lda_sampler:
 
 		for it in xrange(iter):
 			for m in xrange(n_docs):
-				for i, w in enumerate(get_indices(matrix[m. :])):
+				for i, w in enumerate(get_indices(matrix[m, :])):
 					z = self.topics[(m, i)]
 					self.ntdz[m, z] -= 1
 					self.nd[m] -= 1
 					self.ntzw[z, w] -= 1
 					self.nz[z] -= 1
 
-					p_z = self.coniditional	
+					p_z = self.coniditional_dist(m, w)
+					z = sample_index(p_z)
+
+					self.ntdz[m, z] += 1
+					self.nd[m] += 1
+					self.ntzw[z, w] += 1
+					self.nz[z] += 1
+					self.topics[(m, i)] = z 
+
+			yield self.phi()		
