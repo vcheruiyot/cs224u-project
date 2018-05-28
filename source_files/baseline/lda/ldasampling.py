@@ -5,6 +5,7 @@ An implementation of a basic lda gibbs sampling
 import numpy as np 
 import scipy as sp 
 from scipy.special import gammaln
+import matrix_dev
 
 def sample_index(p):
 	"""
@@ -30,11 +31,16 @@ class lda_sampler:
 		sequence of word indices. 
 		"""
 		for i in vec.nonzero()[0]:
-			for j in xrange(int(vec[i])):
+			for j in range(int(vec[i])):
 				yield j
 
 
 	def initialSampling(self, M):
+		"""
+		Initializes matrices for later computation.
+
+		M -> word count matrix in each documnet.
+		"""
 		n_docs, n_vocabSize = M.shape
 		#number of times a document m and topic z co-occur
 		self.ntdz = np.zeros((n_docs, self.nTopics))
@@ -46,7 +52,7 @@ class lda_sampler:
 		self.nz = np.zeros(self.nTopics)
 		self.topics = {}
 
-		for m in xrange(n_docs):
+		for m in range(n_docs):
 			# i is a number of times document m and topic z occur
 			# w is a number of 0 - vocab_size - 1
 			for i, w in enumerate(self.get_indices(M[m, :])):
@@ -75,28 +81,28 @@ class lda_sampler:
 		"""
 		compute phi = p(w | z)
 		"""
-		V = self.ntdz.shape[1]
+		#V = self.ntdz.shape[1]
 		num = self.ntzw + self.beta
 		num /= np.sum(num, axis=1)[:, np.newaxis]
 		return num
 
-	def start(self, matrix, iter=30):
+	def train(self, matrix, max_iter=30):
 		"""
 		start the gibbs sampler
 		"""
 		n_docs, vocab_size = matrix.shape
 		self.initialSampling(matrix)
 
-		for it in xrange(iter):
-			for m in xrange(n_docs):
-				for i, w in enumerate(get_indices(matrix[m, :])):
+		for it in range(max_iter):
+			for m in range(n_docs):
+				for i, w in enumerate(self.get_indices(matrix[m, :])):
 					z = self.topics[(m, i)]
 					self.ntdz[m, z] -= 1
 					self.nd[m] -= 1
 					self.ntzw[z, w] -= 1
 					self.nz[z] -= 1
 
-					p_z = self.coniditional_dist(m, w)
+					p_z = self.conditional_dist(m, w)
 					z = sample_index(p_z)
 
 					self.ntdz[m, z] += 1
@@ -105,4 +111,14 @@ class lda_sampler:
 					self.nz[z] += 1
 					self.topics[(m, i)] = z 
 
-			yield self.phi()		
+			yield self.phi()	
+
+if __name__ == '__main__':
+	sampler = lda_sampler(nTopics= 5)
+	M = matrix_dev.matrix_dev('2010').word_document_matrix()
+	phi = sampler.train(M, max_iter=5)
+	print(list(phi))
+
+	#sampler.start() 
+
+
