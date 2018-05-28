@@ -87,12 +87,8 @@ class lda_sampler:
 		return num
 
 	def train(self, matrix, max_iter=30):
-		"""
-		start the gibbs sampler
-		"""
 		n_docs, vocab_size = matrix.shape
 		self.initialSampling(matrix)
-
 		for it in range(max_iter):
 			for m in range(n_docs):
 				for i, w in enumerate(self.get_indices(matrix[m, :])):
@@ -110,8 +106,10 @@ class lda_sampler:
 					self.ntzw[z, w] += 1
 					self.nz[z] += 1
 					self.topics[(m, i)] = z 
+			yield self.phi()
 
-			yield self.phi()	
+
+
 
 if __name__ == '__main__':
 	sampler = lda_sampler(nTopics= 5)

@@ -10,7 +10,7 @@ class matrix_dev:
 		self.docs = []
 		self.vocab = set()
 		self.vocab_index = {}
-		dirName = "../../feature_groups/tweets"
+		dirName = "../../feature_groups/tweets_dev"
 		absPath = os.path.join(dirName, fileName)
 		with open(absPath, "r") as f:
 			for line in f:
@@ -18,22 +18,25 @@ class matrix_dev:
 				for word in list(line):
 					self.vocab.add(word)
 		self.vocab_index = {w:i for i,w in enumerate(self.vocab)}			
-		dirName = "../../feature_groups/hashTags"
-		absFileName = self.fileName + ".json"
-		absPath = os.path.join(dirName, absFileName)
-		self.topics = []
-		with open(absPath, "r") as f:
-			dictObject = json.load(f)
-		try:
-			for key in dictObject:
-				if len(dictObject[key]) > 0 and dictObject[key][0] != self.fileName:
-					_topics = []
-					for i in dictObject[key]:
-						_topics.append(i)
-					self.topics.append(_topics)
+		# dirName = "../../feature_groups/hashTags"
+		# absFileName = self.fileName + ".json"
+		# absPath = os.path.join(dirName, absFileName)
+		# self.topics = []
+		# with open(absPath, "r") as f:
+		# 	dictObject = json.load(f)
+		# try:
+		# 	for key in dictObject:
+		# 		if len(dictObject[key]) > 0 and dictObject[key][0] != self.fileName:
+		# 			_topics = []
+		# 			for i in dictObject[key]:
+		# 				_topics.append(i)
+		# 			self.topics.append(_topics)
 						
-		except KeyError:
-			print("key error unexpectedly found\n")
+		# except KeyError:
+		# 	print("key error unexpectedly found\n")
+
+	def raw_docs(self):
+		return self.docs
 
 	def tf_idf(self):
 		"""
@@ -96,9 +99,7 @@ class matrix_dev:
 #		for i in range(0, len(self.docs)):
 #			return self.get_word_distribution(self.docs[i], i)
 	
-	
-if __name__ == '__main__':
-	gdist = GenereteDistribution("2010")
+
 
 
 
