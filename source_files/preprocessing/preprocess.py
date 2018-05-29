@@ -1,4 +1,5 @@
 import os, json
+import re
 
 class PreProcessText:
 	def __init__(self):
@@ -14,12 +15,43 @@ class PreProcessText:
 	4. remove any unnecessary junk: http:// ->
 	"""
 	def formatTweet(self, tweet):
-		#ToDo
+		"""
+		lowercase everything
+		"""
+		tweet = tweet.lower()
+		"""
+		removes hashes from a given word
+		"""
+		remove_hash = "#"
+		remove_hash = re.compile(remove_hash)
+		tweet = re.sub(remove_hash, '', tweet)
+		"""
+		remove @name used for follower choice
+		"""
+		non_follower = '@(\w+[\. : \? ~ ! \ \$ \% \ *& \( \) - \+ \=]?)?'
+		non_follower = re.compile(non_follower)
+		tweet = re.sub(non_follower, '', tweet)
+		"""
+		remove url from text
+		"""
+		url_ex = "https?:\/\/.*[\r\n]*"
+		url_ex = re.compile(url_ex)
+		tweet = re.sub(url_ex, '', tweet, re.MULTILINE)
+
+		"""
+		remove punctuation marks
+		"""
+		punct = "[\.\?\&\-\!\[\]\:\;\(\)\/\|]"
+		punct = re.compile(punct)
+		tweet = re.sub(punct, '', tweet)
+		"""
+		add any required preprocessing
+		"""
 		return tweet
 
 	def extractText(self, class_type, allTweets):
 		fileToWrite = class_type
-		dir = os.path.join("../feature_groups/tweets-dev", fileToWrite)
+		dir = os.path.join("../feature_groups/tweets", fileToWrite)
 		with open(dir, "w") as f:
 			for tweet in allTweets:
 				res = self.formatTweet(tweet['text'])

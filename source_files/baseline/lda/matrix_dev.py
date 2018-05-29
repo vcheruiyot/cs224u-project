@@ -12,11 +12,11 @@ class matrix_dev:
 		self.vocab_index = {}
 		dirName = "../../feature_groups/tweets_dev"
 		absPath = os.path.join(dirName, fileName)
-		with open(absPath, "r") as f:
+		with open(absPath, "r", encoding="utf8") as f:
 			for line in f:
 				self.docs.append(line)
 				for word in list(line):
-					self.vocab.add(word)
+					self.vocab.add(word)			
 		self.vocab_index = {w:i for i,w in enumerate(self.vocab)}			
 		# dirName = "../../feature_groups/hashTags"
 		# absFileName = self.fileName + ".json"
@@ -62,46 +62,7 @@ class matrix_dev:
 				word_index = self.vocab_index[w]
 				matrix[word_index, doc_index] += 1
 		return matrix
-
-
-
-
 	
-#	def vertical_topics(self, width, topic_index, document_length):
-#		"""
-#		Generate a topic whose words form a horizontal bar
-#		"""
-#		m = np.zeros((width, width))
-#		m[:, topic_index] = int(document_length/ width)
-#		return m.flatten()
-#
-#	def horizontal_topics(self, width, topic_index, d_length):
-#		m = np.zeros((width, width))
-#		m[topic_index, :] = int(document_length/ width)
-#		return m.flatten()
-#
-#	def get_word_distribution(self, document_length, index):
-#		width = self.n_topics/2
-#		print(self.n_topics)
-#		print(self.vocab_size[index])
-#		m = np.zeros((self.n_topics, self.vocab_size[index]))
-#
-#		for k in range(int(width)):
-#			m[k, :] = self.vertical_topics(int(width), k, document_length)
-#
-#		for k in range(int(width)):
-#			m[k + width, :] = horizontal_topics(int(width), k, document_length)	
-#
-#		m /= m.sum(axis=1)[:, np.newaxis]
-#		return m
-#
-#	def word_distribution(self):
-#		for i in range(0, len(self.docs)):
-#			return self.get_word_distribution(self.docs[i], i)
-	
-
-
-
 
 
 
