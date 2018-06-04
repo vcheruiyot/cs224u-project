@@ -47,12 +47,14 @@ class PreProcessText:
 		"""
 		retweets removed
 		"""
-		rt = "^rt "
+		rt = "^(rt)+[^A-Za-z0-9](rt[^A-Za-z0-9])*"
 		rt = re.compile(rt)
 		tweet = re.sub(rt, '', tweet, re.IGNORECASE)
-		"""
-		add any required preprocessing
-		"""
+		
+		rt2 = "[^A-Za-z0-9](rt)+[^A-Za-z0-9](rt[^A-Za-z0-9])*"
+		rt2 = re.compile(rt2)
+		tweet = re.sub(rt2, ' ', tweet, re.IGNORECASE)
+
 		return tweet
 
 	def extractText(self, class_type, allTweets):
