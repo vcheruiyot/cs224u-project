@@ -45,6 +45,12 @@ class PreProcessText:
 		punct = re.compile(punct)
 		tweet = re.sub(punct, '', tweet)
 		"""
+		retweets removed
+		"""
+		rt = "^rt "
+		rt = re.compile(rt)
+		tweet = re.sub(rt, '', tweet, re.IGNORECASE)
+		"""
 		add any required preprocessing
 		"""
 		return tweet
