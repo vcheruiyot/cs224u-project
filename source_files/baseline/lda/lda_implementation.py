@@ -9,10 +9,12 @@ import _pickle
 import os
 
 class lda_model:
-	def __init__(self, train, dev):
+	def __init__(self):
+		self.no_features = 1000
+
+	def load_data(self, train, dev):
 		#load pickle
 		print("loading pickles")
-		self.no_features = 1000
 		path = os.path.join("../../feature_groups/lda_pickles", train)
 		with open(path, "rb") as f:
 			self.raw_docs = _pickle.load(f)
@@ -23,9 +25,15 @@ class lda_model:
 	def write_to_pickle(self, dir, name, obj):
 		print("writing "+name+" to pickle")
 		path = os.path.join(dir, name)
-		path = os.path.join("../../feature_groups/lda_pickles", 'tf_vectorizer')
 		with open(path, "wb") as f:
 			_pickle.dump(obj, f)
+
+	def load_pickle(self, dir, name):
+		print("loading pickle: "+name)
+		path = os.path.join(dir, name)
+		with open(path, "rb") as f:
+			return _pickle.load(f)
+
 
 	def tf_model(self):
 		print("Creating tf model")
@@ -46,20 +54,22 @@ class lda_model:
 				estimator=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
 					evaluate_every=-1, learning_decay=0.7, learning_method='online',
 					learning_offset=10.0, max_doc_update_iter=100, max_iter=10000,
-					mean_change_tol=0.001, n_components=70, n_jobs=1,
+					mean_change_tol=0.001, n_jobs=1,
 					n_topics=None, perp_tol=0.1, random_state=None),
 				fit_params=None, iid=True, n_jobs=1,
 				param_grid=search_params,
 				pre_dispatch='2*n_jobs', refit=True, return_train_score='warn',
 				scoring=None, verbose=1)
-		self.write_to_pickle("../../feature_groups/lda_pickles", 'grid_model', grid_model)
-		return model
+		return grid_model
 
 if __name__ == '__main__':
-	lda = lda_model('raw_docs', 'dev')
-	train_model = lda.tf_model()
+	lda = lda_model()
+	#lda.load_data('raw_docs', 'dev')
+	#train_model = lda.tf_model()
+	train_model = lda.load_pickle('../../feature_groups/lda_pickles', 'tf_vectorizer')
 	grid_model = lda.grid_search()
 	grid_model.fit(train_model)
+	grid_model.write_to_pickle("../../feature_groups/lda_pickles", 'grid_model', grid_model)
 
 
 
