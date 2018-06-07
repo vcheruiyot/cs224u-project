@@ -15,6 +15,13 @@ class PreProcessText:
 	4. remove any unnecessary junk: http:// ->
 	"""
 	def formatTweet(self, tweet):
+		tweet = tweet.strip()
+		"""
+		remove extra spacing in the tweet
+		"""
+		spaces = "(\ +)"
+		spaces = re.compile(spaces)
+		tweet = re.sub(spaces, ' ', tweet)
 		"""
 		lowercase everything
 		"""
@@ -54,6 +61,13 @@ class PreProcessText:
 		rt2 = "[^A-Za-z0-9](rt)+[^A-Za-z0-9](rt[^A-Za-z0-9])*"
 		rt2 = re.compile(rt2)
 		tweet = re.sub(rt2, ' ', tweet, re.IGNORECASE)
+
+		"""
+		because -> coz, bcoz, 
+		"""
+		coz = "((b?e?coz)[^A-Za-z0-9])|([^A-Za-z0-9](b?e?coz)[^A-Za-z0-9])"
+		coz = re.compile(coz)
+		tweet = re.sub(coz, ' because ', tweet, re.IGNORECASE)
 
 		return tweet
 
