@@ -85,37 +85,24 @@ class lda_model:
 		coherence_model_lda = CoherenceModel(model=lda_model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 		coherence_lda = coherence_model_ld.get_coherence()
 		print('Coherence score ', coherence_lda)
-
-		#define search params
-		"""
-		search_params = {'n_components':[70, 140], 'learning_decay':[0.7, 0.9]}
-		#init model
-		
-		lda = LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
-					evaluate_every=-1, n_components=70, learning_decay=0.7, learning_method='online',
-					learning_offset=10.0, max_doc_update_iter=100, max_iter=50,
-					mean_change_tol=0.001, n_jobs=1,
-					n_topics=None, perp_tol=0.1, random_state=None)
-		#init grid search class
-		"""
-		"""
-		grid_model = GridSearchCV(cv=None, error_score='raise',
-				estimator=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
-					evaluate_every=-1, learning_decay=0.7, learning_method='online',
-					learning_offset=10.0, max_doc_update_iter=100, max_iter=10000,
-					mean_change_tol=0.001, n_jobs=1,
-					n_topics=None, perp_tol=0.1, random_state=None),
-				fit_params=None, iid=True, n_jobs=1,
-				param_grid=search_params,
-				pre_dispatch='2*n_jobs', refit=True, return_train_score='warn',
-				scoring=None, verbose=1)
-		"""
 		return lda
+
+	def lda_mallet_model(self):
+		mallet_path = '/mnt/c/Users/SSEA 34/Downloads/mallet-2.0.8'
+		lda_mallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word, passes=1)
+		#show topics
+		pprint(lda_mallet.show_topics(formatted=False))
+		#compute the coherence
+		coherence_model_ldamallet = CoherenceModel(model=lda_mallet, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
+		coherence_ldamallet = coherence_model_ldamallet.get_coherence()
+		print('Coherence Score: ', coherence_ldamallet)
+
 
 if __name__ == '__main__':
 	lda = lda_model()
 	lda.load_data('raw_docs', 'dev')
-	ld = lda.lda()
+	#ld = lda.lda()
+	lda.lda_mallet_model()
 	#train_model = lda.tf_model()
 	#train_model = lda.load_pickle('../../feature_groups/lda_pickles', 'tf_vectorizer')
 	
