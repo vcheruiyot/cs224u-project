@@ -88,7 +88,7 @@ class lda_model:
 		return lda
 
 	def lda_mallet_model(self):
-		mallet_path = '/mnt/c/Users/SSEA 34/Downloads/mallet-2.0.8'
+		self.mallet_path = '/mnt/c/Users/SSEA 34/Downloads/mallet-2.0.8/'
 		lda_mallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word, passes=1)
 		#show topics
 		pprint(lda_mallet.show_topics(formatted=False))
@@ -98,11 +98,38 @@ class lda_model:
 		print('Coherence Score: ', coherence_ldamallet)
 
 
+	def best_model_search(self):
+		coherence_values, lda_mallet_list = compute_best_lda_model(70, 400, 30)
+	"""
+	finding the best lda model based on the n_topics chosen
+	"""
+	def compute_best_lda_model(self, start, limit, step):
+		"""
+		coherence_values : coherence values corresponding to the number of topics
+		lda_model_list : list of lda topic model
+		"""
+		coherence_values = []
+		lda_mallet_list = []
+
+		for topics in range(start, limit, step):
+			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word)
+			lda_mallet_list.append(model)
+			coherence_model = CoherenceModel(model=model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
+			coherence_values.append(coherence_model.get_coherence())
+			print('Num_topics = ', topics, ' corresponding coherence value: ', coherence_model.get_coherence())
+
+		return coherence_values, lda_mallet_list	
+
+
+
+
+
 if __name__ == '__main__':
 	lda = lda_model()
 	lda.load_data('raw_docs', 'dev')
 	#ld = lda.lda()
 	lda.lda_mallet_model()
+	lda.best_model_search()
 	#train_model = lda.tf_model()
 	#train_model = lda.load_pickle('../../feature_groups/lda_pickles', 'tf_vectorizer')
 	
