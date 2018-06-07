@@ -20,6 +20,7 @@ class lda_model:
 		self.no_features = 1000
 		self.stop_words = stopwords.words('english')
 		self.nlp = spacy.load('en', disable=['parser', 'ner'])
+		self.mallet_path = 'mallet-2.0.8/bin/mallet'
 
 	def sent_to_words(self, sentences):
 		for sentence in sentences:
@@ -114,7 +115,7 @@ class lda_model:
                                            alpha='auto',
                                            per_word_topics=True)
 		self.write_to_pickle('../../feature_groups/lda_pickles', 'lda_model', lda_model)
-		print(lda_model.print_topics())
+		#print(lda_model.print_topics())
 		doc_lda = lda_model[self.corpus]
 		#calculate perplexity or how good the model is
 		print('perplexity: ', lda_model.log_perplexity(self.corpus))
@@ -124,12 +125,33 @@ class lda_model:
 		print('Coherence score ', coherence_lda)
 		return lda
 
-	def lda_mallet_model(self):
-		self.mallet_path = 'mallet-2.0.8/bin/mallet'
+	def domininant_topic(self, lda_model):
+		sent_topics = pd.DataFrame()
+		#get main topic in each document
+		for i, row in enumerate(lda_model[self.corpus]):
+			row = sorted(row, key=lambda x : (x[1]), reverse=True)
+			# Get the Dominant topic, Perc Contribution and Keywords for each document
+			for j, (topic_num, perc_prop) in enumerate(row):
+				if j == 0 : # -> dominant topic
+					found = lda_model.show_topic(topic_num)
+					keywords = ", ".join([word for word, prop in found])
+					sent_topics = sent_topics.append(pd.Series([int(topic_num), round(perc_prop,4), keywords]), ignore_index=True)
 
-		lda_mallet = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word)
+				else:
+					break
+		sent_topics.columns = ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords']	
+		#add original text
+		contents = pd.Series(self.raw_docs)
+		sent_topics = pd.concat([sent_topics, contents], axis=1)
+		return sent_topics
+			
+
+
+	def lda_mallet_model(self):
+
+		lda_mallet = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word, iterations=2000)
 		#show topics
-		print(lda_mallet.show_topics(formatted=False))
+		#print(lda_mallet.show_topics(formatted=False))
 		#compute the coherence
 		coherence_model_ldamallet = CoherenceModel(model=lda_mallet, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 		coherence_ldamallet = coherence_model_ldamallet.get_coherence()
@@ -137,7 +159,14 @@ class lda_model:
 
 
 	def best_model_search(self):
-		coherence_values, lda_mallet_list = self.compute_best_lda_model(70, 400, 30)
+		coherence_values, lda_mallet_list, lda_topics = self.compute_best_lda_model(30, 500, 50)
+		max_tup = max(zip(coherence_values, lda_mallet_list, lda_topics))
+		view_topics = self.domininant_topic(lda_model=max_tup[1])
+		topic_doc_dist = self.get_representative_docs(lda_model=max_tup[1])
+		doc_topic_dist = self.topic_distribution(lda_model=max_tup[1])
+		#pprint(view_topics)
+		return max_tup[1], coherence_values
+
 	"""
 	finding the best lda model based on the n_topics chosen
 	"""
@@ -148,67 +177,65 @@ class lda_model:
 		"""
 		coherence_values = []
 		lda_mallet_list = []
+		lda_topics = []
 
 		for topics in range(start, limit, step):
-			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word)
+			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word, iterations=2000)
 			lda_mallet_list.append(model)
 			coherence_model = CoherenceModel(model=model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 			coherence_values.append(coherence_model.get_coherence())
+			lda_topics.append(topics)
 			print('Num_topics = ', topics, ' corresponding coherence value: ', coherence_model.get_coherence())
 
-		return coherence_values, lda_mallet_list
+		return coherence_values, lda_mallet_list, lda_topics
 
 	# Group top 5 sentences under each topic
-	def get_representative_docs():
-		self.sent_topics_sorteddf_mallet = pd.DataFrame()
-		self.sent_topics_outdf_grpd = df_topic_sents_keywords.groupby('Dominant_Topic')
-		for i, grp in sent_topics_outdf_grpd:
-		   self.sent_topics_sorteddf_mallet = pd.concat([sent_topics_sorteddf_mallet, 
-		                                             grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)], 
-		                                            axis=0)
+	def get_representative_docs(self, lda_model):
+		print("representative docs")
+		topic_sents_keywords = self.domininant_topic(lda_model=lda_model)
+		
+		sent_topics = pd.DataFrame()
+		sent_topics_group = topic_sents_keywords.groupby('Dominant_Topic')
+		for i, grp in sent_topics_group:
+		   sent_topics = pd.concat([sent_topics, 
+		                                        grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)], 
+		                                        axis=0)
 		# Reset Index    
-		self.sent_topics_sorteddf_mallet.reset_index(drop=True, inplace=True)
+		sent_topics.reset_index(drop=True, inplace=True)
 		# Format
-		self.sent_topics_sorteddf_mallet.columns = ['Topic_Num', "Topic_Perc_Contrib", "Keywords", "Text"]
+		sent_topics.columns = ['Topic_Num', "Topic_Perc_Contrib", "Keywords", "Text"]
 		# Show
-		pprint(self.sent_topics_sorteddf_mallet.head())
+		#pprint(sent_topics.head())
+		return sent_topics
 
-	def topic_distribution():
+	def topic_distribution(self, lda_model):
+		print("topic distribution")
+		topic_sents_keywords = self.domininant_topic(lda_model=lda_model)
 		# Number of Documents for Each Topic
-		self.topic_counts = self.df_topic_sents_keywords['Dominant_Topic'].value_counts()
+		topic_counts = topic_sents_keywords['Dominant_Topic'].value_counts()
 
 		# Percentage of Documents for Each Topic
-		self.topic_contribution = round(topic_counts/topic_counts.sum(), 4)
+		topic_contribution = round(topic_counts/topic_counts.sum(), 4)
 
 		# Topic Number and Keywords
-		self.topic_num_keywords = self.df_topic_sents_keywords[['Dominant_Topic', 'Topic_Keywords']]
+		topic_num_keywords = topic_sents_keywords[['Dominant_Topic', 'Topic_Keywords']]
 
 		# Concatenate Column wise
-		self.df_dominant_topics = pd.concat([topic_num_keywords, topic_counts, topic_contribution], axis=1)
+		df_dominant_topics = pd.concat([topic_num_keywords, topic_counts, topic_contribution], axis=1)
 
 		# Change Column names
-		self.df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
+		df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
 
 		# Show
-		pprint(self.df_dominant_topics)
-
-
-
+		#pprint(df_dominant_topics)
+		return df_dominant_topics
 
 
 if __name__ == '__main__':
 	lda = lda_model()
 	lda.load_data('raw_docs', 'dev')
-	#ld = lda.lda()
-	lda.lda_mallet_model()
 	lda.best_model_search()
-	#train_model = lda.tf_model()
-	#train_model = lda.load_pickle('../../feature_groups/lda_pickles', 'tf_vectorizer')
 	
-	#ld.fit(train_model)
-	#lda.write_to_pickle("../../feature_groups/lda_pickles", 'lda_model', lda_model)
-	#grid_model.fit(train_model)
-	#grid_model.write_to_pickle("../../feature_groups/lda_pickles", 'grid_model', grid_model)
 
 
 
