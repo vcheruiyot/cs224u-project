@@ -9,7 +9,7 @@ import _pickle
 import gensim
 import gensim.corpora as corpora
 import os
-import pprint
+from pprint import pprint
 from gensim.models import CoherenceModel
 from nltk.corpus import stopwords
 import spacy
@@ -123,6 +123,28 @@ class lda_model:
 		print('Coherence score ', coherence_lda)
 		return lda
 
+	def domininant_topic(self, lda_model=lda_model):
+		sent_topics = pd.Dataframe()
+		#get main topic in each document
+		for i, row in enumerate(lda_model[self.corpus]):
+			row = sorted(row, key=lambda x : (x[1]), reverse=True)
+			# Get the Dominant topic, Perc Contribution and Keywords for each document
+			for j, in (topic_num, perc_prop) in enumerate(row):
+				if j == 0 : # -> dominant topic
+					found = lda_model.show_topic(topic_num)
+					keywords = ", ".join([word for word, prop in found])
+					sent_topics = sent_topics.append(pd.Series([int(topic_num), round(perc_prop,4), keywords]), ignore_index=True)
+
+				else:
+					break
+		sent_topics.columns = ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords']	
+		#add original text
+		contents = pd.Series(self.raw_docs)
+		sent_topics = pd.concat([sent_topics, contents], axis=1)
+		return sent_topics
+			
+
+
 	def lda_mallet_model(self):
 		self.mallet_path = 'mallet-2.0.8/bin/mallet'
 
@@ -136,7 +158,11 @@ class lda_model:
 
 
 	def best_model_search(self):
-		coherence_values, lda_mallet_list = self.compute_best_lda_model(70, 400, 30)
+		coherence_values, lda_mallet_list, lda_topics = self.compute_best_lda_model(70, 200, 40)
+		max_tup = max(zip(coherence_values, lda_mallet_list, lda_topics))
+		view_topics = self.domininant_topic(lda_model=max_tup[1])
+		pprint(view_topics)
+
 	"""
 	finding the best lda model based on the n_topics chosen
 	"""
@@ -147,15 +173,17 @@ class lda_model:
 		"""
 		coherence_values = []
 		lda_mallet_list = []
+		lda_topics = []
 
 		for topics in range(start, limit, step):
 			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word)
 			lda_mallet_list.append(model)
 			coherence_model = CoherenceModel(model=model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 			coherence_values.append(coherence_model.get_coherence())
+			lda_topics.append(topics)
 			print('Num_topics = ', topics, ' corresponding coherence value: ', coherence_model.get_coherence())
 
-		return coherence_values, lda_mallet_list	
+		return coherence_values, lda_mallet_list, lda_topics
 
 
 
