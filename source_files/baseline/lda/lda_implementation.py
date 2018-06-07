@@ -9,10 +9,11 @@ import _pickle
 import gensim
 import gensim.corpora as corpora
 import os
-import pprint
+from pprint import pprint
 from gensim.models import CoherenceModel
 from nltk.corpus import stopwords
 import spacy
+import pandas as pd
 
 class lda_model:
 	def __init__(self):
@@ -155,7 +156,41 @@ class lda_model:
 			coherence_values.append(coherence_model.get_coherence())
 			print('Num_topics = ', topics, ' corresponding coherence value: ', coherence_model.get_coherence())
 
-		return coherence_values, lda_mallet_list	
+		return coherence_values, lda_mallet_list
+
+	# Group top 5 sentences under each topic
+	def get_representative_docs():
+		self.sent_topics_sorteddf_mallet = pd.DataFrame()
+		self.sent_topics_outdf_grpd = df_topic_sents_keywords.groupby('Dominant_Topic')
+		for i, grp in sent_topics_outdf_grpd:
+		   self.sent_topics_sorteddf_mallet = pd.concat([sent_topics_sorteddf_mallet, 
+		                                             grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)], 
+		                                            axis=0)
+		# Reset Index    
+		self.sent_topics_sorteddf_mallet.reset_index(drop=True, inplace=True)
+		# Format
+		self.sent_topics_sorteddf_mallet.columns = ['Topic_Num', "Topic_Perc_Contrib", "Keywords", "Text"]
+		# Show
+		pprint(self.sent_topics_sorteddf_mallet.head())
+
+	def topic_distribution():
+		# Number of Documents for Each Topic
+		self.topic_counts = self.df_topic_sents_keywords['Dominant_Topic'].value_counts()
+
+		# Percentage of Documents for Each Topic
+		self.topic_contribution = round(topic_counts/topic_counts.sum(), 4)
+
+		# Topic Number and Keywords
+		self.topic_num_keywords = self.df_topic_sents_keywords[['Dominant_Topic', 'Topic_Keywords']]
+
+		# Concatenate Column wise
+		self.df_dominant_topics = pd.concat([topic_num_keywords, topic_counts, topic_contribution], axis=1)
+
+		# Change Column names
+		self.df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
+
+		# Show
+		pprint(self.df_dominant_topics)
 
 
 
