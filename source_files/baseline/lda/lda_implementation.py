@@ -46,21 +46,21 @@ class lda_model:
 	    # path = os.path.join("../../feature_groups/lda_pickles", 'dev')
 	    # with open(path, "wb") as f:
 	    #     _pickle.dump(dev, f)
-	    #self.no_stopwords = list(self.remove_stopwords(self.rawdocs))
-		self.data_lemmatized = list(self.sent_to_words(self.no_stopwords))
+		self.docs = list(self.sent_to_words(self.raw_docs))
+		self.no_stopwords = self.remove_stopwords(self.docs)
+		self.data_lemmatized = self.bigram_trigram_init()
 		self.id2word = corpora.Dictionary(self.data_lemmatized)	
 		self.corpus = [self.id2word.doc2bow(line) for line in self.data_lemmatized]
 
 	def bigram_trigram_init(self):
-		self.bigram = gensim.models.Phrases(self.rawdocs , min_count=5, threshold=100) # higher threshold fewer phrases.
-		self.trigram = gensim.models.Phrases(bigram[self.rawdocs], threshold=100)  
+		self.bigram = gensim.models.Phrases(self.docs , min_count=5, threshold=100) # higher threshold fewer phrases.
+		self.trigram = gensim.models.Phrases(self.bigram[self.docs], threshold=100)  
 
 		# Faster way to get a sentence clubbed as a trigram/bigram
 		self.bigram_mod = gensim.models.phrases.Phraser(self.bigram)
 		self.trigram_mod = gensim.models.phrases.Phraser(self.trigram)
-
-		#self.data_words_bigrams = make_bigrams(data_words_nostops)
-		#self.data_words_bigrams = make_bigrams(data_words_nostops)
+		self.data_words_bigrams = self.make_bigrams(self.no_stopwords)
+		return self.lemmatization(self.data_words_bigrams, allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
 
 	def make_bigrams(self, texts):
 		return [self.bigram_mod[doc] for doc in texts]
@@ -124,9 +124,9 @@ class lda_model:
 		return lda
 
 	def lda_mallet_model(self):
-		mallet_path = 'mallet-2.0.8/bin/mallet'
+		self.mallet_path = 'mallet-2.0.8/bin/mallet'
 
-		lda_mallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word)
+		lda_mallet = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word)
 		#show topics
 		print(lda_mallet.show_topics(formatted=False))
 		#compute the coherence
@@ -135,11 +135,38 @@ class lda_model:
 		print('Coherence Score: ', coherence_ldamallet)
 
 
+	def best_model_search(self):
+		coherence_values, lda_mallet_list = self.compute_best_lda_model(70, 400, 30)
+	"""
+	finding the best lda model based on the n_topics chosen
+	"""
+	def compute_best_lda_model(self, start, limit, step):
+		"""
+		coherence_values : coherence values corresponding to the number of topics
+		lda_model_list : list of lda topic model
+		"""
+		coherence_values = []
+		lda_mallet_list = []
+
+		for topics in range(start, limit, step):
+			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word)
+			lda_mallet_list.append(model)
+			coherence_model = CoherenceModel(model=model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
+			coherence_values.append(coherence_model.get_coherence())
+			print('Num_topics = ', topics, ' corresponding coherence value: ', coherence_model.get_coherence())
+
+		return coherence_values, lda_mallet_list	
+
+
+
+
+
 if __name__ == '__main__':
 	lda = lda_model()
 	lda.load_data('raw_docs', 'dev')
 	#ld = lda.lda()
 	lda.lda_mallet_model()
+	lda.best_model_search()
 	#train_model = lda.tf_model()
 	#train_model = lda.load_pickle('../../feature_groups/lda_pickles', 'tf_vectorizer')
 	
