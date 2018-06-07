@@ -15,6 +15,14 @@ from gensim.models import CoherenceModel
 class lda_model:
 	def __init__(self):
 		self.no_features = 1000
+		self.stop_words = stopwords.words('english')
+
+	def sent_to_words(self, sentences):
+		for sentence in sentences:
+			yield(gensim.utils.simple_preprocess(str(sentence), deacc=True))
+
+	def remove_stopwords(self, texts):
+    	return [word for word in simple_preprocess(str(doc)) if word not in self.stop_words]
 
 	def load_data(self, train, dev):
 		#load pickle
@@ -36,7 +44,7 @@ class lda_model:
 	    # with open(path, "wb") as f:
 	    #     _pickle.dump(dev, f)
 
-		self.data_lemmatized = [i.split() for i in self.raw_docs]
+		self.data_lemmatized = list(self.sent_to_words(self.raw_docs))
 		self.id2word = corpora.Dictionary(self.data_lemmatized)	
 		self.corpus = [self.id2word.doc2bow(line) for line in self.data_lemmatized]
 	
@@ -74,42 +82,20 @@ class lda_model:
                                            random_state=100,
                                            update_every=1,
                                            chunksize=100,
-                                           passes=30,
+                                           passes=1,
                                            alpha='auto',
                                            per_word_topics=True)
-		pprint(lda_model.print_topics())
-		doc_lda = lda_model[corpus]
+		self.write_to_pickle('../../feature_groups/lda_pickles', 'lda_model', lda_model)
+		print(lda_model.print_topics())
+		doc_lda = lda_model[self.corpus]
 		#calculate perplexity or how good the model is
-		print('perplexity: ', lda_model.log_perplexity(corpus))
+		print('perplexity: ', lda_model.log_perplexity(self.corpus))
 		#compute the coherence score
 		coherence_model_lda = CoherenceModel(model=lda_model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
-		coherence_lda = coherence_model_ld.get_coherence()
+		coherence_lda = coherence_model_lda.get_coherence()
 		print('Coherence score ', coherence_lda)
 
 		#define search params
-		"""
-		search_params = {'n_components':[70, 140], 'learning_decay':[0.7, 0.9]}
-		#init model
-		
-		lda = LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
-					evaluate_every=-1, n_components=70, learning_decay=0.7, learning_method='online',
-					learning_offset=10.0, max_doc_update_iter=100, max_iter=50,
-					mean_change_tol=0.001, n_jobs=1,
-					n_topics=None, perp_tol=0.1, random_state=None)
-		#init grid search class
-		"""
-		"""
-		grid_model = GridSearchCV(cv=None, error_score='raise',
-				estimator=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
-					evaluate_every=-1, learning_decay=0.7, learning_method='online',
-					learning_offset=10.0, max_doc_update_iter=100, max_iter=10000,
-					mean_change_tol=0.001, n_jobs=1,
-					n_topics=None, perp_tol=0.1, random_state=None),
-				fit_params=None, iid=True, n_jobs=1,
-				param_grid=search_params,
-				pre_dispatch='2*n_jobs', refit=True, return_train_score='warn',
-				scoring=None, verbose=1)
-		"""
 		return lda
 
 if __name__ == '__main__':
