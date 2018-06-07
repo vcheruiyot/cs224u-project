@@ -1,122 +1,81 @@
-"""
-An implementation of a basic lda gibbs sampling
-"""
-
-import numpy as np 
-import scipy as sp 
-from scipy.special import gammaln
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.model_selection import GridSearchCV
+import numpy as np
 import matrix_dev
+import matplotlib.pyplot as plt
+import _pickle
+import os
 
-def sample_index(p):
-	"""
-	sample from the multinomial distribution and return the sample index
-	"""
-	return np.random.multinomial(1,p).argmax()
+class lda_model:
+	def __init__(self):
+		self.no_features = 1000
 
-class lda_sampler:
-	def __init__(self, nTopics, alpha=0.1, beta=0.1):
-		"""
-		nTopics -> desired number of topics
-		alpha -> scalar
-		beta -> scalar
-		"""
-		self.nTopics = nTopics
-		self.alpha = alpha
-		self.beta = beta
+	def load_data(self, train, dev):
+		#load pickle
+		print("loading pickles")
+		path = os.path.join("../../feature_groups/lda_pickles", train)
+		with open(path, "rb") as f:
+			self.raw_docs = _pickle.load(f)
+		path = os.path.join("../../feature_groups/lda_pickles", dev)
+		with open(path, "rb") as f:
+			self.dev = _pickle.load(f)
 
+	def write_to_pickle(self, dir, name, obj):
+		print("writing "+name+" to pickle")
+		path = os.path.join(dir, name)
+		with open(path, "wb") as f:
+			_pickle.dump(obj, f)
 
-	def get_indices(self, vec):
-		"""
-		Turns a document vector of size vocab size to a
-		sequence of word indices. 
-		"""
-		for i in vec.nonzero()[0]:
-			for j in range(int(vec[i])):
-				yield j
-
-
-	def initialSampling(self, M):
-		"""
-		Initializes matrices for later computation.
-
-		M -> word count matrix in each documnet.
-		"""
-		n_docs, n_vocabSize = M.shape
-		#number of times a document m and topic z co-occur
-		self.ntdz = np.zeros((n_docs, self.nTopics))
-		#number of times topic z and word w co-occur
-		self.ntzw = np.zeros((self.nTopics, n_vocabSize))
-		#number of n documets
-		self.nd = np.zeros(n_docs)
-		#number of topics
-		self.nz = np.zeros(self.nTopics)
-		self.topics = {}
-
-		for m in range(n_docs):
-			# i is a number of times document m and topic z occur
-			# w is a number of 0 - vocab_size - 1
-			for i, w in enumerate(self.get_indices(M[m, :])):
-				#choose an arbitrary topic as first topic for word i
-				z = np.random.randint(self.nTopics)
-				self.ntdz[m, z] += 1
-				self.nd[m] += 1
-				self.ntzw[z, w] += 1
-				self.nz[z] += 1
-				self.topics[(m, i)] = z
-
-	def conditional_dist(self, m, w):
-		"""
-		coniditional distribution of n_topics
-		"""
-		vocab_size = self.ntzw.shape[1]
-		left = (self.ntzw[:, w] + self.beta) /(self.nz + self.beta * vocab_size)
-		right = (self.ntdz[m,:] + self.alpha)/(self.nd[m] + self.alpha * self.nTopics)
-
-		p_z = left * right
-		# normalize
-		p_z /= np.sum(p_z)
-		return p_z
-
-	def phi(self):
-		"""
-		compute phi = p(w | z)
-		"""
-		#V = self.ntdz.shape[1]
-		num = self.ntzw + self.beta
-		num /= np.sum(num, axis=1)[:, np.newaxis]
-		return num
-
-	def train(self, matrix, max_iter=30):
-		n_docs, vocab_size = matrix.shape
-		self.initialSampling(matrix)
-		for it in range(max_iter):
-			for m in range(n_docs):
-				for i, w in enumerate(self.get_indices(matrix[m, :])):
-					z = self.topics[(m, i)]
-					self.ntdz[m, z] -= 1
-					self.nd[m] -= 1
-					self.ntzw[z, w] -= 1
-					self.nz[z] -= 1
-
-					p_z = self.conditional_dist(m, w)
-					z = sample_index(p_z)
-
-					self.ntdz[m, z] += 1
-					self.nd[m] += 1
-					self.ntzw[z, w] += 1
-					self.nz[z] += 1
-					self.topics[(m, i)] = z 
-			yield self.phi()
+	def load_pickle(self, dir, name):
+		print("loading pickle: "+name)
+		path = os.path.join(dir, name)
+		with open(path, "rb") as f:
+			return _pickle.load(f)
 
 
+	def tf_model(self):
+		print("Creating tf model")
+		tf_vectorizer = TfidfVectorizer(max_features=self.no_features) #stop_words='english')
+		tf = tf_vectorizer.fit_transform(self.raw_docs)
+		tf_feature_names = tf_vectorizer.get_feature_names()
+		self.write_to_pickle("../../feature_groups/lda_pickles", 'tf_vectorizer', tf)
+		return tf
 
+	def grid_search(self):
+		print("Starting grid search")
+		#define search params
+		search_params = {'n_components':[70, 140], 'learning_decay':[0.7, 0.9]}
+		#init model
+		lda = LatentDirichletAllocation()
+		#init grid search class
+		grid_model = GridSearchCV(cv=None, error_score='raise',
+				estimator=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
+					evaluate_every=-1, learning_decay=0.7, learning_method='online',
+					learning_offset=10.0, max_doc_update_iter=100, max_iter=10000,
+					mean_change_tol=0.001, n_jobs=1,
+					n_topics=None, perp_tol=0.1, random_state=None),
+				fit_params=None, iid=True, n_jobs=1,
+				param_grid=search_params,
+				pre_dispatch='2*n_jobs', refit=True, return_train_score='warn',
+				scoring=None, verbose=1)
+		return grid_model
 
 if __name__ == '__main__':
-	sampler = lda_sampler(nTopics= 5)
-	M = matrix_dev.matrix_dev('2010').word_document_matrix()
-	phi = sampler.train(M, max_iter=5)
-	print(list(phi))
+	lda = lda_model()
+	#lda.load_data('raw_docs', 'dev')
+	#train_model = lda.tf_model()
+	train_model = lda.load_pickle('../../feature_groups/lda_pickles', 'tf_vectorizer')
+	grid_model = lda.grid_search()
+	grid_model.fit(train_model)
+	grid_model.write_to_pickle("../../feature_groups/lda_pickles", 'grid_model', grid_model)
 
-	#sampler.start() 
+
+
+
+
+
+
 
 
