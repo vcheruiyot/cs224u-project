@@ -161,9 +161,9 @@ class lda_model:
 	def best_model_search(self):
 		coherence_values, lda_mallet_list, lda_topics = self.compute_best_lda_model(30, 500, 50)
 		max_tup = max(zip(coherence_values, lda_mallet_list, lda_topics))
-		view_topics = self.domininant_topic(lda_model=max_tup[1])
-		topic_doc_dist = self.get_representative_docs(lda_model=max_tup[1])
-		doc_topic_dist = self.topic_distribution(lda_model=max_tup[1])
+		#view_topics = self.domininant_topic(lda_model=max_tup[1])
+		#topic_doc_dist = self.get_representative_docs(lda_model=max_tup[1])
+		#doc_topic_dist = self.topic_distribution(lda_model=max_tup[1])
 		#pprint(view_topics)
 		return max_tup[1], coherence_values
 
@@ -191,7 +191,7 @@ class lda_model:
 
 	# Group top 5 sentences under each topic
 	def get_representative_docs(self, lda_model):
-		print("representative docs")
+		#print("representative docs")
 		topic_sents_keywords = self.domininant_topic(lda_model=lda_model)
 		
 		sent_topics = pd.DataFrame()
