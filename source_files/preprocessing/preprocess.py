@@ -1,10 +1,26 @@
 import os, json
 import re
+from ekphrasis.classes.segmenter import Segmenter
 
 class PreProcessText:
 	def __init__(self):
 		self.dir = "../feature_groups/groups"
 
+
+
+
+	def ensure_segmentation(self, words):
+		print(words)
+		print("Performing Segmentation")
+		seg_tw = Segmenter(corpus="twitter")
+		sentence = []
+		for word in words:
+			res = seg_tw.segment(word)
+			print(res)
+			sentence.append(res)
+	
+
+		return " ".join(sentence)
 
 	"""
 	Write code to:
@@ -69,15 +85,19 @@ class PreProcessText:
 		coz = re.compile(coz)
 		tweet = re.sub(coz, ' because ', tweet, re.IGNORECASE)
 
+		tweet = tweet.strip()
+
 		return tweet
 
 	def extractText(self, class_type, allTweets):
 		fileToWrite = class_type
-		dir = os.path.join("../feature_groups/tweets", fileToWrite)
-		with open(dir, "w") as f:
+		file = os.path.join("../feature_groups/tweets", fileToWrite)
+		with open(file, "w") as f:
 			for tweet in allTweets:
 				res = self.formatTweet(tweet['text'])
-				f.write(res + '\n')
+				split_tweet = res.split(" ")
+				formatted_tweet = self.ensure_segmentation(split_tweet)
+				f.write(formatted_tweet + '\n')
 			
 
 	def readJson(self):

@@ -41,7 +41,7 @@ class lda_model:
 		# with open(path, "rb") as f:
 		# 	self.dev = _pickle.load(f)
 
-		self.raw_docs = matrix_dev.matrix_dev('trainshort').raw_docs()
+		self.raw_docs = matrix_dev.matrix_dev('../../feature_groups/tweets_dev/trainshort').raw_docs()
 		path = os.path.join("../../feature_groups/lda_pickles", 'raw_short')
 		with open(path, "wb") as f:
 			_pickle.dump(self.raw_docs, f)
@@ -148,11 +148,10 @@ class lda_model:
 
 
 	def lda_mallet_model(self):
-
+		"""
+		builds the lda model. 
+		"""
 		lda_mallet = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word, iterations=2000)
-		#show topics
-		#print(lda_mallet.show_topics(formatted=False))
-		#compute the coherence
 		coherence_model_ldamallet = CoherenceModel(model=lda_mallet, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 		coherence_ldamallet = coherence_model_ldamallet.get_coherence()
 		print('Coherence Score: ', coherence_ldamallet)
