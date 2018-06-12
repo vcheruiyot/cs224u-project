@@ -94,10 +94,10 @@ class PreProcessText:
 		file = os.path.join("../feature_groups/tweets", fileToWrite)
 		with open(file, "w") as f:
 			for tweet in allTweets:
-				res = self.formatTweet(tweet['text'])
-				split_tweet = res.split(" ")
-				formatted_tweet = self.ensure_segmentation(split_tweet)
-				f.write(formatted_tweet + '\n')
+				#res = self.formatTweet(tweet['text'])
+				#split_tweet = res.split(" ")
+				#formatted_tweet = self.ensure_segmentation(split_tweet)
+				f.write(tweet + '\n')
 			
 
 	def readJson(self):
