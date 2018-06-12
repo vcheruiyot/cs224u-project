@@ -22,6 +22,12 @@ class lda_model:
 		self.nlp = spacy.load('en', disable=['parser', 'ner'])
 		self.mallet_path = 'mallet-2.0.8/bin/mallet'
 
+	def load_raw_docs(self, train):
+		path = os.path.join('../../feature_groups/tweets_dev/', train)
+		with open(path, "r", encoding="utf8") as f:
+			for line in f:
+				yield(line)
+
 	def sent_to_words(self, sentences):
 		for sentence in sentences:
 			yield(gensim.utils.simple_preprocess(str(sentence), deacc=True))
@@ -30,7 +36,7 @@ class lda_model:
 		for sentence in sentences:
 			yield([word for word in sentence if word not in self.stop_words])
 
-	def load_data(self, train = 'raw_docs.pkl'):
+	def load_data(self, train = 'supertrain_50k'):
 		#load pickle
 		print("loading data")
 
@@ -40,21 +46,22 @@ class lda_model:
 		# path = os.path.join("../../feature_groups/lda_pickles", dev)
 		# with open(path, "rb") as f:
 		# 	self.dev = _pickle.load(f)
-		
-		path = os.path.join('../../feature_groups/lda_pickles', train)
-		if os.path.isfile(path):
-			self.raw_docs = self.load_pickle('../../feature_groups/lda_pickles', train)
-		else:
-			self.raw_docs = matrix_dev.matrix_dev('../../feature_groups/tweets_dev/supertrain_clean').raw_docs()
+		self.raw_docs = self.load_raw_docs(train)
+		#if os.path.isfile(path):
+		#	self.raw_docs = self.load_pickle('../../feature_groups/lda_pickles', train)
+		#else:
+		#	self.raw_docs = matrix_dev.matrix_dev('../../feature_groups/tweets_dev/supertrain_clean').raw_docs()
+			#print(type(self.raw_docs))
 			#self.write_to_pickle('../../feature_groups/lda_pickles', train, self.raw_docs)
-	    # path = os.path.join("../../feature_groups/lda_pickles", 'dev')
-	    # with open(path, "wb") as f:
-	    #     _pickle.dump(dev, f)
 		self.docs = list(self.sent_to_words(self.raw_docs))
 		self.no_stopwords = self.remove_stopwords(self.docs)
+		print('creating bigrams')
 		self.data_lemmatized = self.bigram_trigram_init()
+		print('creating dictionary')
 		self.id2word = corpora.Dictionary(self.data_lemmatized)	
+		print('creating corpus')
 		self.corpus = [self.id2word.doc2bow(line) for line in self.data_lemmatized]
+		print('data loading complete')
 
 	def bigram_trigram_init(self):
 		self.bigram = gensim.models.Phrases(self.docs , min_count=5, threshold=100) # higher threshold fewer phrases.
@@ -237,8 +244,10 @@ class lda_model:
 
 if __name__ == '__main__':
 	lda = lda_model()
-	lda.load_data('raw_docs', 'dev')
-	lda.best_model_search()
+	lda.load_data()
+	path = os.path.join('../../feature_groups/lda_pickles', 'lda_model')
+	with open(path, "wb") as f:
+		_pickle.dump(f, lda)
 	
 
 
