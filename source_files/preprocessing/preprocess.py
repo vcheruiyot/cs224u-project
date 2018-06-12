@@ -1,26 +1,11 @@
 import os, json
 import re
-from ekphrasis.classes.segmenter import Segmenter
+
 
 class PreProcessText:
 	def __init__(self):
-		self.dir = "../feature_groups/groups"
+		self.dir = "../feature_groups/tweets_dev"
 
-
-
-
-	def ensure_segmentation(self, words):
-		print(words)
-		print("Performing Segmentation")
-		seg_tw = Segmenter(corpus="twitter")
-		sentence = []
-		for word in words:
-			res = seg_tw.segment(word)
-			print(res)
-			sentence.append(res)
-	
-
-		return " ".join(sentence)
 
 	"""
 	Write code to:
@@ -89,26 +74,22 @@ class PreProcessText:
 
 		return tweet
 
-	def extractText(self, class_type, allTweets):
-		fileToWrite = class_type
-		file = os.path.join("../feature_groups/tweets", fileToWrite)
-		with open(file, "w") as f:
-			for tweet in allTweets:
-				#res = self.formatTweet(tweet['text'])
-				#split_tweet = res.split(" ")
-				#formatted_tweet = self.ensure_segmentation(split_tweet)
-				f.write(tweet + '\n')
+	def extractText(self, f, name):
+		print(name)
+		absPath = os.path.join(self.dir, name + '_clean')
+		with open(absPath, 'w') as to_write:
+			for tweet in f:
+				res = self.formatTweet(tweet)
+				to_write.write(res + '\n')
 			
 
-	def readJson(self):
+	def readDir(self):
 		for file in os.listdir(self.dir):
 			absPath = os.path.join(self.dir, file)
-			with open(absPath, "r") as jsonFile:
-				jsonObject = json.load(jsonFile)
-				class_type = jsonObject['class_type']
-				self.extractText(class_type, jsonObject[class_type])	
+			with open(absPath, "r", encoding='iso-8859-1') as f:
+				self.extractText(f, file)	
 
 
 if __name__ == '__main__':
 	gt = PreProcessText()
-	gt.readJson()
+	gt.readDir()

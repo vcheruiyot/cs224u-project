@@ -10,7 +10,7 @@ class DumpToJson:
 		self.dir = dirName
 		
 	def writeToJson(self):
-		featureGroup = self.dictObject['class_type']
+		featureGroup = self.dictObject['test_type']
 		jsonFile = featureGroup + ".json"
 		absPath = os.path.join(self.dir, jsonFile)
 		with open(absPath, "w") as outFile:

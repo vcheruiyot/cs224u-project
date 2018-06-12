@@ -30,9 +30,9 @@ class lda_model:
 		for sentence in sentences:
 			yield([word for word in sentence if word not in self.stop_words])
 
-	def load_data(self, train, dev):
+	def load_data(self, train = 'raw_docs.pkl'):
 		#load pickle
-		print("loading pickles")
+		print("loading data")
 
 		# path = os.path.join("../../feature_groups/lda_pickles", train)
 		# with open(path, "rb") as f:
@@ -40,11 +40,13 @@ class lda_model:
 		# path = os.path.join("../../feature_groups/lda_pickles", dev)
 		# with open(path, "rb") as f:
 		# 	self.dev = _pickle.load(f)
-
-		self.raw_docs = matrix_dev.matrix_dev('../../feature_groups/tweets_dev/trainshort').raw_docs()
-		path = os.path.join("../../feature_groups/lda_pickles", 'raw_short')
-		with open(path, "wb") as f:
-			_pickle.dump(self.raw_docs, f)
+		
+		path = os.path.join('../../feature_groups/lda_pickles', train)
+		if os.path.isfile(path):
+			self.raw_docs = self.load_pickle('../../feature_groups/lda_pickles', train)
+		else:
+			self.raw_docs = matrix_dev.matrix_dev('../../feature_groups/tweets_dev/supertrain_clean').raw_docs()
+			#self.write_to_pickle('../../feature_groups/lda_pickles', train, self.raw_docs)
 	    # path = os.path.join("../../feature_groups/lda_pickles", 'dev')
 	    # with open(path, "wb") as f:
 	    #     _pickle.dump(dev, f)
@@ -102,28 +104,28 @@ class lda_model:
 		#self.write_to_pickle("../../feature_groups/lda_pickles", 'tf_vectorizer', tf)
 		return tf
 
-	def lda(self):
-		print("Starting lda")
-		#corpus = self.tf_model().todense()
-		lda_model = gensim.models.ldamodel.LdaModel(corpus=self.corpus,
-                                           id2word=self.id2word,
-                                           num_topics=70, 
-                                           random_state=100,
-                                           update_every=1,
-                                           chunksize=100,
-                                           passes=1,
-                                           alpha='auto',
-                                           per_word_topics=True)
-		self.write_to_pickle('../../feature_groups/lda_pickles', 'lda_model', lda_model)
-		#print(lda_model.print_topics())
-		doc_lda = lda_model[self.corpus]
-		#calculate perplexity or how good the model is
-		print('perplexity: ', lda_model.log_perplexity(self.corpus))
-		#compute the coherence score
-		coherence_model_lda = CoherenceModel(model=lda_model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
-		coherence_lda = coherence_model_lda.get_coherence()
-		print('Coherence score ', coherence_lda)
-		return lda
+	# def lda(self):
+	# 	print("Starting lda")
+	# 	#corpus = self.tf_model().todense()
+	# 	lda_model = gensim.models.ldamodel.LdaModel(corpus=self.corpus,
+ #                                           id2word=self.id2word,
+ #                                           num_topics=70, 
+ #                                           random_state=100,
+ #                                           update_every=1,
+ #                                           chunksize=100,
+ #                                           passes=1,
+ #                                           alpha='auto',
+ #                                           per_word_topics=True)
+	# 	self.write_to_pickle('../../feature_groups/lda_pickles', 'lda_model', lda_model)
+	# 	#print(lda_model.print_topics())
+	# 	doc_lda = lda_model[self.corpus]
+	# 	#calculate perplexity or how good the model is
+	# 	print('perplexity: ', lda_model.log_perplexity(self.corpus))
+	# 	#compute the coherence score
+	# 	coherence_model_lda = CoherenceModel(model=lda_model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
+	# 	coherence_lda = coherence_model_lda.get_coherence()
+	# 	print('Coherence score ', coherence_lda)
+	# 	return lda
 
 	def domininant_topic(self, lda_model, corpus = None):
 		if not corpus:

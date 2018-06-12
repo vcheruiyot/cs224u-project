@@ -5,7 +5,7 @@ from json_dump import DumpToJson
 
 class HashTagExtractor:
 	def __init__(self):
-		self.dir = "../feature_groups/groups"
+		self.dir = "../feature_groups/tweets_dev"
 
 	def findHashTags(self, tweet):
 		hashTagPattern = "(?:#)([a-zA-Z\d\?]+)"
@@ -13,13 +13,13 @@ class HashTagExtractor:
 		hashTags = re.findall(hashTagPattern, tweet)
 		return hashTags
 
-	def extractHashTag(self, class_type, allTweets):
+	def extractHashTag(self, allTweets, file):
 		hashTagMap = {}
-		hashTagMap['class_type'] = class_type
+		hashTagMap['test_type'] = file
 		index = 0
-		print(class_type)
+		print(file)
 		for tweet in allTweets:
-			hashTagPerTweet = self.findHashTags(tweet['text'])
+			hashTagPerTweet = self.findHashTags(tweet)
 			hashTagMap[index] = hashTagPerTweet
 			index += 1
 
@@ -29,10 +29,8 @@ class HashTagExtractor:
 	def readJson(self):
 		for file in os.listdir(self.dir):
 			absPath = os.path.join(self.dir, file)
-			with open(absPath, "r") as jsonFile:
-				jsonObject = json.load(jsonFile)
-				class_type = jsonObject['class_type']
-				self.extractHashTag(class_type, jsonObject[class_type])
+			with open(absPath, "r", encoding='iso-8859-1') as f:
+				self.extractHashTag(f, file)
 
 
 if __name__ == '__main__':
