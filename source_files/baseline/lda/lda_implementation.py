@@ -125,10 +125,12 @@ class lda_model:
 		print('Coherence score ', coherence_lda)
 		return lda
 
-	def domininant_topic(self, lda_model):
+	def domininant_topic(self, lda_model, corpus = None):
+		if not corpus:
+			corpus = self.corpus
 		sent_topics = pd.DataFrame()
 		#get main topic in each document
-		for i, row in enumerate(lda_model[self.corpus]):
+		for i, row in enumerate(lda_model[corpus]):
 			row = sorted(row, key=lambda x : (x[1]), reverse=True)
 			# Get the Dominant topic, Perc Contribution and Keywords for each document
 			for j, (topic_num, perc_prop) in enumerate(row):
@@ -147,18 +149,19 @@ class lda_model:
 			
 
 
-	def lda_mallet_model(self):
+	def lda_mallet_model(self, num_topics=70, iterations = 1):
 		"""
 		builds the lda model. 
 		"""
-		lda_mallet = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=70, id2word=self.id2word, iterations=2000)
+		lda_mallet = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=num_topics, id2word=self.id2word, iterations=iterations)
 		coherence_model_ldamallet = CoherenceModel(model=lda_mallet, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 		coherence_ldamallet = coherence_model_ldamallet.get_coherence()
 		print('Coherence Score: ', coherence_ldamallet)
+		return lda_mallet
 
 
-	def best_model_search(self):
-		coherence_values, lda_mallet_list, lda_topics = self.compute_best_lda_model(30, 500, 50)
+	def best_model_search(self, start = 5, end = 100, step = 20):
+		coherence_values, lda_mallet_list, lda_topics = self.compute_best_lda_model(start, end, step)
 		max_tup = max(zip(coherence_values, lda_mallet_list, lda_topics))
 		#view_topics = self.domininant_topic(lda_model=max_tup[1])
 		#topic_doc_dist = self.get_representative_docs(lda_model=max_tup[1])
@@ -179,7 +182,7 @@ class lda_model:
 		lda_topics = []
 
 		for topics in range(start, limit, step):
-			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word, iterations=2000)
+			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word, iterations=50)#2000)
 			lda_mallet_list.append(model)
 			coherence_model = CoherenceModel(model=model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 			coherence_values.append(coherence_model.get_coherence())
