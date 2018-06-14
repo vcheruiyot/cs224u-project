@@ -20,31 +20,47 @@ class evaluator:
 	def load_test_y(self, name, path = '../../feature_groups/hashTags'):
 		abs_path = os.path.join(path, name)
 		with open(abs_path, "r") as f:
-			self.test = json.loads(f)
+			self.test = json.load(f)
 
 	def set_model(self, model):
 		self.model = model
 
 	def load_test_x(self, name, path = '../../feature_groups/tweets_dev'):
+		abs_path = os.path.join(path, name)
 		with open(abs_path, "r") as f:
-			self.lines = f.readlines()
+			self.tweets = f.readlines()
 
 
-	def load_pickle(self, dir, name):
-		print("loading pickle: "+name)
-		path = os.path.join(dir, name)
+	def load_model_pickle(self, name, path ='../../feature_groups/lda_pickles'):
+		print("loading model: "+name)
+		path = os.path.join(path, name)
 		with open(path, "rb") as f:
-			return _pickle.load(f)
+			self.model = _pickle.load(f)
 
-	def process_line(self, line): #stub function
-		return set()
+	def load_bigrams(self, name, path ='../../feature_groups/lda_pickles'):
+		print("loading bigram: "+name)
+		path = os.path.join(path, name)
+		with open(path, "rb") as f:
+			self.bigrams = _pickle.load(f)
+
+	def get_hashtags(self, tweet): #stub function
+		split = gensim.utils.simple_preprocess(str(tweet), deacc=True)
+		bigram = self.bigrams[split]
+		bow = self.model.id2word.doc2bow(bigram)
+		topics = self.model[bow]
+		best_topic_id = max(topics, key= lambda x: x[1])[0]
+		keywords = self.model.show_topic(best_topic_id)
+		return set(i[0] for i in keywords[:5])
+
+
 
 	def calculate_recall(self):
 		count = 0.
 		hits = 0.
-		for index, line in enumerate(self.lines):
-			sugested_tags = self.process_line(line)
-			actual_tags = self.test[index]
+		for index, tweet in enumerate(self.tweets):
+			sugested_tags = self.get_hashtags(tweet)
+			print(index, sugested_tags)
+			actual_tags = self.test[str(index)]
 			for elem in actual_tags:
 				if elem in sugested_tags:
 					hits += 1

@@ -36,7 +36,7 @@ class lda_model:
 		for sentence in sentences:
 			yield([word for word in sentence if word not in self.stop_words])
 
-	def load_data(self, train = 'supertrain_50k'):
+	def load_data(self, train = 'supertrain'):
 		#load pickle
 		print("loading data")
 
@@ -191,7 +191,7 @@ class lda_model:
 		lda_topics = []
 
 		for topics in range(start, limit, step):
-			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word, iterations=50)#2000)
+			model = gensim.models.wrappers.LdaMallet(self.mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.id2word, iterations=4000)#2000)
 			lda_mallet_list.append(model)
 			coherence_model = CoherenceModel(model=model, texts=self.data_lemmatized, dictionary=self.id2word, coherence='c_v')
 			coherence_values.append(coherence_model.get_coherence())
